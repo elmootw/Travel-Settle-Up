@@ -20,6 +20,15 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Check npm version
+      run: npm --version
+
+    - name: List files
+      run: ls -la
+
+    - name: Check package.json
+      run: cat package.json
+
     - name: Build project
       run: npm run build
       env:
@@ -34,6 +43,7 @@ jobs:
         REACT_APP_SHARED_PASSWORD: ${{ secrets.REACT_APP_SHARED_PASSWORD }}
         REACT_APP_ADMIN_USERNAME: ${{ secrets.REACT_APP_ADMIN_USERNAME }}
         REACT_APP_ADMIN_PASSWORD: ${{ secrets.REACT_APP_ADMIN_PASSWORD }}
+        CI: false
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
