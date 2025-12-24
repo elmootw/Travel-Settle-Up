@@ -14,7 +14,6 @@ export const AuthProvider = ({ children }) => {
   );
 
   useEffect(() => {
-    console.log('🔐 AuthContext initialized, isAdmin:', isAdmin, 'username:', currentUsername);
     const unsubscribe = onAuthChange((authUser) => {
       setUser(authUser);
       setLoading(false);
@@ -32,7 +31,6 @@ export const AuthProvider = ({ children }) => {
   }, [currentUsername]);
 
   useEffect(() => {
-    console.log('💾 保存 isAdmin 到 localStorage:', isAdmin);
     localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
   }, [isAdmin]);
 

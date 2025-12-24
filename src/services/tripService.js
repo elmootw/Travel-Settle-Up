@@ -1,5 +1,5 @@
 import { database } from '../config/firebase';
-import { ref, set, get, update, remove, push, child } from 'firebase/database';
+import { ref, set, get, remove, push } from 'firebase/database';
 
 /**
  * 生成隨機密碼（字符串格式）

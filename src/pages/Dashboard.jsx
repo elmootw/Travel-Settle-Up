@@ -15,6 +15,7 @@ export const Dashboard = () => {
 
   useEffect(() => {
     loadTrips();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, currentUsername]);
 
   const loadTrips = async () => {

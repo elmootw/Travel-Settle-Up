@@ -6,7 +6,6 @@ import { calculateDebts } from '../services/expenseService';
 export const TripDetail = ({ tripId, trip, onBack }) => {
   const { currentUsername, isAdmin } = useContext(AuthContext);
   const [expenses, setExpenses] = useState({});
-  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDebts, setShowDebts] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -20,15 +19,14 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
 
   useEffect(() => {
     loadExpenses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   const loadExpenses = async () => {
-    setLoading(true);
     const result = await getExpenses(tripId);
     if (result.success) {
       setExpenses(result.expenses || {});
     }
-    setLoading(false);
   };
 
   const handleAddExpense = async (e) => {
