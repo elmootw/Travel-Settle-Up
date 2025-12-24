@@ -36,9 +36,13 @@ jobs:
         REACT_APP_ADMIN_PASSWORD: ${{ secrets.REACT_APP_ADMIN_PASSWORD }}
         CI: false
 
+    - name: Check if build exists
+      run: ls -la build/ || echo "Build directory not found"
+
     - name: Deploy to GitHub Pages
       if: success()
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./build
+        force_orphan: true
