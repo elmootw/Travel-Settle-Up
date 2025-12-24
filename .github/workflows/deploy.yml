@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,9 +38,6 @@ jobs:
         REACT_APP_ADMIN_USERNAME: ${{ secrets.REACT_APP_ADMIN_USERNAME }}
         REACT_APP_ADMIN_PASSWORD: ${{ secrets.REACT_APP_ADMIN_PASSWORD }}
         CI: false
-
-    - name: Check if build exists
-      run: ls -la build/ || echo "Build directory not found"
 
     - name: Deploy to GitHub Pages
       if: success()
