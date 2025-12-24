@@ -64,20 +64,14 @@ export const AdminPanel = ({ onBack }) => {
       return;
     }
 
-    console.log(`🔍 新增團員: ${newMemberName} 到旅遊 ${selectedTripId}`);
-    
     const result = await addMemberToTrip(selectedTripId, newMemberName);
 
-    console.log(`📋 新增結果:`, result);
-
     if (result.success) {
-      console.log(`✅ 團員新增成功，密碼: ${result.password}`);
       setMessage(`✅ ${result.message}`);
       setGeneratedPassword(result.password);
       setNewMemberName('');
       await loadTrips();
       
-      // 5 秒後自動清空密碼顯示
       setTimeout(() => {
         setGeneratedPassword('');
       }, 5000);
