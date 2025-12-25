@@ -503,7 +503,7 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
           )}
         </div>
 
-        {/* 團員列表 - 修改部分 */}
+        {/* 團員列表 */}
         <div>
           <h3 className="font-semibold text-gray-800 mb-3">
             團員列表 ({Object.keys(currentTrip.members || {}).length})
@@ -517,7 +517,7 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-4 py-2 text-left font-semibold text-gray-700">名稱</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-700">密碼</th>
+                    {isAdmin && <th className="px-4 py-2 text-left font-semibold text-gray-700">密碼</th>}
                     <th className="px-4 py-2 text-left font-semibold text-gray-700">操作</th>
                   </tr>
                 </thead>
@@ -537,7 +537,9 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
                           memberName
                         )}
                       </td>
-                      <td className="px-4 py-2 text-gray-600 font-mono text-xs">{memberData.password}</td>
+                      {isAdmin && (
+                        <td className="px-4 py-2 text-gray-600 font-mono text-xs">{memberData.password}</td>
+                      )}
                       <td className="px-4 py-2 space-x-2">
                         {editingMember === memberName ? (
                           <>
