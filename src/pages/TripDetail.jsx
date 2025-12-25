@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { getExpenses, addExpense, updateExpense, deleteExpense } from '../services/expenseService';
-import { calculateDebts } from '../services/expenseService';
+import { getExpenses, addExpense, updateExpense, deleteExpense, calculateDebts } from '../services/expenseService';
+import { updateTripName, updateMemberName, removeMemberFromTrip } from '../services/tripService';
 
 export const TripDetail = ({ tripId, trip, onBack }) => {
   const { currentUsername, isAdmin } = useContext(AuthContext);
@@ -16,18 +16,22 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     splitWith: [],
   });
   const [message, setMessage] = useState('');
+  const [editingTripName, setEditingTripName] = useState(false);
+  const [newTripName, setNewTripName] = useState(trip.name);
+  const [editingMember, setEditingMember] = useState(null);
+  const [newMemberNameValue, setNewMemberNameValue] = useState('');
+  const [localTrip, setLocalTrip] = useState(trip);
 
-  useEffect(() => {
-    loadExpenses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
-
-  const loadExpenses = async () => {
+  const loadExpenses = useCallback(async () => {
     const result = await getExpenses(tripId);
     if (result.success) {
       setExpenses(result.expenses || {});
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadExpenses();
+  }, [tripId, loadExpenses]);
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -87,36 +91,6 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     }
   };
 
-  const handleEditExpense = (expenseId) => {
-    const expense = expenses[expenseId];
-    
-    // 檢查權限：建立者或管理者可以編輯
-    if (expense.createdBy !== currentUsername && !isAdmin) {
-      setMessage('❌ 只有支出建立者或管理者才能編輯此支出');
-      return;
-    }
-
-    setEditingId(expenseId);
-    setFormData({
-      description: expense.description,
-      amount: expense.amount.toString(),
-      paidBy: expense.paidBy,
-      splitWith: expense.splitWith || [],
-    });
-    setShowAddForm(true);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFormData({
-      description: '',
-      amount: '',
-      paidBy: currentUsername,
-      splitWith: [],
-    });
-    setShowAddForm(false);
-  };
-
   const handleDeleteExpense = async (expenseId) => {
     const expense = expenses[expenseId];
     
@@ -139,6 +113,77 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     }
   };
 
+  const handleUpdateTripName = async () => {
+    if (!newTripName.trim()) {
+      setMessage('❌ 旅遊名稱不能為空');
+      return;
+    }
+
+    const result = await updateTripName(tripId, newTripName);
+    if (result.success) {
+      setMessage('✅ 旅遊名稱已更新');
+      setEditingTripName(false);
+      setLocalTrip({ ...localTrip, name: newTripName });
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+  };
+
+  const handleUpdateMemberName = async (oldName) => {
+    if (!isAdmin) {
+      setMessage('❌ 只有管理者才能編輯團員名稱');
+      return;
+    }
+
+    if (!newMemberNameValue.trim()) {
+      setMessage('❌ 團員名稱不能為空');
+      return;
+    }
+
+    const result = await updateMemberName(tripId, oldName, newMemberNameValue);
+    if (result.success) {
+      setMessage('✅ 團員名稱已更新');
+      setEditingMember(null);
+      
+      // 更新本地團員列表
+      const updatedMembers = { ...localTrip.members };
+      updatedMembers[newMemberNameValue] = updatedMembers[oldName];
+      delete updatedMembers[oldName];
+      setLocalTrip({ ...localTrip, members: updatedMembers });
+      
+      await loadExpenses();
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+  };
+
+  const handleRemoveMember = async (tripId, memberName) => {
+    if (!isAdmin) {
+      setMessage('❌ 只有管理者才能移除團員');
+      return;
+    }
+
+    if (!window.confirm(`確定要移除 ${memberName} 嗎？`)) {
+      return;
+    }
+
+    const result = await removeMemberFromTrip(tripId, memberName);
+    if (result.success) {
+      setMessage('✅ 團員已移除');
+      
+      // 更新本地團員列表
+      const updatedMembers = { ...localTrip.members };
+      delete updatedMembers[memberName];
+      setLocalTrip({ ...localTrip, members: updatedMembers });
+      
+      await loadExpenses();
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+  };
+
+  const currentTrip = localTrip;
+
   const members = Object.keys(trip.members || {});
   const debts = calculateDebts(expenses, trip.members || {});
 
@@ -146,11 +191,43 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     <div className="min-h-screen w-full bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b-2 border-blue-500 shadow-sm sticky top-0 z-40">
-        <div className="w-full px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-          <h1 className="text-lg sm:text-2xl font-bold text-blue-600 truncate">🏖️ {trip.name}</h1>
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          {editingTripName ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTripName}
+                onChange={(e) => setNewTripName(e.target.value)}
+                className="px-3 py-1 border-2 border-blue-500 rounded"
+                autoFocus
+              />
+              <button
+                onClick={handleUpdateTripName}
+                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
+              >
+                ✓
+              </button>
+              <button
+                onClick={() => setEditingTripName(false)}
+                className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-blue-600">🏖️ {localTrip.name}</h1>
+              <button
+                onClick={() => setEditingTripName(true)}
+                className="text-gray-500 hover:text-gray-700 text-sm"
+              >
+                ✏️
+              </button>
+            </div>
+          )}
           <button
             onClick={onBack}
-            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base whitespace-nowrap"
+            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition"
           >
             返回
           </button>
@@ -158,7 +235,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-3 sm:px-4 md:px-8 py-4 sm:py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {message && (
           <div
             className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg text-sm sm:text-base ${
@@ -171,9 +248,8 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
           </div>
         )}
 
-        {/* 結算卡片和快速按鈕 */}
+        {/* 結算卡片 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* 結算卡片 */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <button
               onClick={() => setShowDebts(!showDebts)}
@@ -242,9 +318,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
             <form onSubmit={handleAddExpense} className="space-y-3 sm:space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                    項目名稱
-                  </label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">項目名稱</label>
                   <input
                     type="text"
                     value={formData.description}
@@ -255,9 +329,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                    金額 (TWD)
-                  </label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">金額 (TWD)</label>
                   <input
                     type="number"
                     value={formData.amount}
@@ -269,9 +341,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  誰付的
-                </label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">誰付的</label>
                 <select
                   value={formData.paidBy}
                   onChange={(e) => setFormData({...formData, paidBy: e.target.value})}
@@ -284,9 +354,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  分帳人（多選）
-                </label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">分帳人（多選）</label>
                 <div className="space-y-2 bg-gray-50 p-3 rounded-lg max-h-40 overflow-y-auto">
                   {members.map(member => (
                     <label key={member} className="flex items-center text-sm sm:text-base">
@@ -323,7 +391,16 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleCancelEdit}
+                  onClick={() => {
+                    setEditingId(null);
+                    setFormData({
+                      description: '',
+                      amount: '',
+                      paidBy: currentUsername,
+                      splitWith: [],
+                    });
+                    setShowAddForm(false);
+                  }}
                   className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base"
                 >
                   取消
@@ -368,7 +445,16 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
                         {(expense.createdBy === currentUsername || isAdmin) && (
                           <div className="flex gap-1 sm:gap-2">
                             <button
-                              onClick={() => handleEditExpense(id)}
+                              onClick={() => {
+                                setEditingId(id);
+                                setFormData({
+                                  description: expense.description,
+                                  amount: expense.amount.toString(),
+                                  paidBy: expense.paidBy,
+                                  splitWith: expense.splitWith || [],
+                                });
+                                setShowAddForm(true);
+                              }}
                               className="bg-blue-500 hover:bg-blue-600 text-white px-2 sm:px-3 py-1 rounded text-xs transition"
                             >
                               編輯
@@ -380,6 +466,89 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
                               刪除
                             </button>
                           </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* 團員列表 - 修改部分 */}
+        <div>
+          <h3 className="font-semibold text-gray-800 mb-3">
+            團員列表 ({Object.keys(currentTrip.members || {}).length})
+          </h3>
+
+          {Object.keys(currentTrip.members || {}).length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-4">還沒有團員</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-700">名稱</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-700">密碼</th>
+                    <th className="px-4 py-2 text-left font-semibold text-gray-700">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(currentTrip.members || {}).map(([memberName, memberData]) => (
+                    <tr key={memberName} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2 font-semibold text-gray-800">
+                        {editingMember === memberName ? (
+                          <input
+                            type="text"
+                            value={newMemberNameValue}
+                            onChange={(e) => setNewMemberNameValue(e.target.value)}
+                            className="px-2 py-1 border-2 border-blue-500 rounded"
+                            autoFocus
+                          />
+                        ) : (
+                          memberName
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600 font-mono text-xs">{memberData.password}</td>
+                      <td className="px-4 py-2 space-x-2">
+                        {editingMember === memberName ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdateMemberName(memberName)}
+                              className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => setEditingMember(null)}
+                              className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingMember(memberName);
+                                    setNewMemberNameValue(memberName);
+                                  }}
+                                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  編輯
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveMember(tripId, memberName)}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  移除
+                                </button>
+                              </>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>
