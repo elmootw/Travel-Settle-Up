@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Travel-Settle-Up/static/css/main.99cfe375.css",
+    "main.js": "/Travel-Settle-Up/static/js/main.9d038844.js",
+    "index.html": "/Travel-Settle-Up/index.html",
+    "main.99cfe375.css.map": "/Travel-Settle-Up/static/css/main.99cfe375.css.map",
+    "main.9d038844.js.map": "/Travel-Settle-Up/static/js/main.9d038844.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.99cfe375.css",
+    "static/js/main.9d038844.js"
+  ]
+}
