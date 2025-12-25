@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { getExpenses, addExpense, updateExpense, deleteExpense, calculateDebts } from '../services/expenseService';
-import { updateTripName, updateMemberName, removeMemberFromTrip } from '../services/tripService';
+import { updateTripName, updateMemberName, removeMemberFromTrip, getTrip } from '../services/tripService';
 
-export const TripDetail = ({ tripId, trip, onBack }) => {
+export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
   const { currentUsername, isAdmin } = useContext(AuthContext);
   const [expenses, setExpenses] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
@@ -29,9 +29,22 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     }
   }, [tripId]);
 
+  const loadTrip = useCallback(async () => {
+    const result = await getTrip(tripId);
+    if (result.success) {
+      setLocalTrip(result.trip);
+    }
+  }, [tripId]);
+
+  useEffect(() => {
+    setLocalTrip(trip);
+    setNewTripName(trip.name);
+  }, [trip]);
+
   useEffect(() => {
     loadExpenses();
-  }, [tripId, loadExpenses]);
+    loadTrip();
+  }, [tripId, loadExpenses, loadTrip]);
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -43,7 +56,6 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     }
 
     if (editingId) {
-      // 編輯支出
       const result = await updateExpense(tripId, editingId, {
         description: formData.description,
         amount: parseFloat(formData.amount),
@@ -62,11 +74,11 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
         });
         setShowAddForm(false);
         await loadExpenses();
+        if (onTripsUpdated) onTripsUpdated();
       } else {
         setMessage(`❌ ${result.message}`);
       }
     } else {
-      // 新增支出
       const result = await addExpense(tripId, {
         description: formData.description,
         amount: parseFloat(formData.amount),
@@ -85,6 +97,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
         });
         setShowAddForm(false);
         await loadExpenses();
+        if (onTripsUpdated) onTripsUpdated();
       } else {
         setMessage(`❌ ${result.message}`);
       }
@@ -94,7 +107,6 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
   const handleDeleteExpense = async (expenseId) => {
     const expense = expenses[expenseId];
     
-    // 檢查權限：建立者或管理者可以刪除
     if (expense.createdBy !== currentUsername && !isAdmin) {
       setMessage('❌ 只有支出建立者或管理者才能刪除此支出');
       return;
@@ -108,6 +120,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
     if (result.success) {
       setMessage('✅ 支出已刪除');
       await loadExpenses();
+      if (onTripsUpdated) onTripsUpdated();
     } else {
       setMessage(`❌ ${result.message}`);
     }
@@ -124,6 +137,9 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
       setMessage('✅ 旅遊名稱已更新');
       setEditingTripName(false);
       setLocalTrip({ ...localTrip, name: newTripName });
+      if (onTripsUpdated) {
+        onTripsUpdated();
+      }
     } else {
       setMessage(`❌ ${result.message}`);
     }
@@ -151,6 +167,9 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
       delete updatedMembers[oldName];
       setLocalTrip({ ...localTrip, members: updatedMembers });
       
+      if (onTripsUpdated) {
+        onTripsUpdated();
+      }
       await loadExpenses();
     } else {
       setMessage(`❌ ${result.message}`);
@@ -176,6 +195,9 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
       delete updatedMembers[memberName];
       setLocalTrip({ ...localTrip, members: updatedMembers });
       
+      if (onTripsUpdated) {
+        onTripsUpdated();
+      }
       await loadExpenses();
     } else {
       setMessage(`❌ ${result.message}`);
@@ -184,8 +206,8 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
 
   const currentTrip = localTrip;
 
-  const members = Object.keys(trip.members || {});
-  const debts = calculateDebts(expenses, trip.members || {});
+  const members = Object.keys(localTrip.members || {});
+  const debts = calculateDebts(expenses, localTrip.members || {});
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
@@ -216,7 +238,7 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-blue-600">🏖️ {localTrip.name}</h1>
+              <h1 className="text-2xl font-bold text-blue-600">🏖️ {currentTrip.name}</h1>
               <button
                 onClick={() => setEditingTripName(true)}
                 className="text-gray-500 hover:text-gray-700 text-sm"
@@ -226,7 +248,12 @@ export const TripDetail = ({ tripId, trip, onBack }) => {
             </div>
           )}
           <button
-            onClick={onBack}
+            onClick={() => {
+              if (onTripsUpdated) {
+                onTripsUpdated();
+              }
+              onBack();
+            }}
             className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition"
           >
             返回

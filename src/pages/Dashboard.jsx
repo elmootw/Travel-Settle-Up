@@ -53,12 +53,19 @@ export const Dashboard = () => {
 
   // 管理者面板
   if (showAdminPanel && isAdmin) {
-    return <AdminPanel onBack={() => setShowAdminPanel(false)} />;
+    return <AdminPanel onBack={() => setShowAdminPanel(false)} onTripsUpdated={loadTrips} />;
   }
 
   // 旅遊詳情頁
   if (selectedTripId && trips[selectedTripId]) {
-    return <TripDetail tripId={selectedTripId} trip={trips[selectedTripId]} onBack={() => setSelectedTripId(null)} />;
+    return (
+      <TripDetail 
+        tripId={selectedTripId} 
+        trip={trips[selectedTripId]} 
+        onBack={() => setSelectedTripId(null)}
+        onTripsUpdated={loadTrips}
+      />
+    );
   }
 
   // 主儀表板 - 旅遊列表
@@ -205,6 +212,15 @@ export const Dashboard = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {selectedTripId && trips[selectedTripId] && (
+          <TripDetail 
+            tripId={selectedTripId} 
+            trip={trips[selectedTripId]}
+            onBack={() => setSelectedTripId('')}
+            onTripsUpdated={loadTrips}
+          />
         )}
       </main>
     </div>
