@@ -1,5 +1,5 @@
 import { database } from '../config/firebase';
-import { ref, set, get, remove, push } from 'firebase/database';
+import { ref, set, get, remove, push, update } from 'firebase/database';
 
 /**
  * 生成隨機密碼（字符串格式）
@@ -134,5 +134,87 @@ export const removeMemberFromTrip = async (tripId, memberName) => {
   } catch (error) {
     console.error('❌ 移除團員失敗:', error);
     return { success: false, message: '移除團員失敗' };
+  }
+};
+
+/**
+ * 更新旅遊名稱
+ */
+export const updateTripName = async (tripId, newName) => {
+  try {
+    if (!newName.trim()) {
+      return { success: false, message: '旅遊名稱不能為空' };
+    }
+
+    const tripRef = ref(database, `trips/${tripId}`);
+    await update(tripRef, { name: newName.trim() });
+
+    return { success: true, message: '旅遊名稱已更新' };
+  } catch (error) {
+    console.error('❌ 更新旅遊名稱失敗:', error);
+    return { success: false, message: '更新旅遊名稱失敗' };
+  }
+};
+
+/**
+ * 更新團員名稱
+ */
+export const updateMemberName = async (tripId, oldMemberName, newMemberName) => {
+  try {
+    if (!newMemberName.trim()) {
+      return { success: false, message: '團員名稱不能為空' };
+    }
+
+    const membersRef = ref(database, `trips/${tripId}/members`);
+    const membersSnapshot = await get(membersRef);
+    
+    if (!membersSnapshot.exists()) {
+      return { success: false, message: '團員不存在' };
+    }
+
+    const members = membersSnapshot.val();
+    
+    if (!members[oldMemberName]) {
+      return { success: false, message: '原團員名稱不存在' };
+    }
+
+    // 複製舊名稱的資料到新名稱
+    const memberData = members[oldMemberName];
+    await set(ref(database, `trips/${tripId}/members/${newMemberName.trim()}`), memberData);
+    
+    // 刪除舊名稱
+    await remove(ref(database, `trips/${tripId}/members/${oldMemberName}`));
+
+    // 更新支出中的 paidBy 和 splitWith
+    const expensesRef = ref(database, `trips/${tripId}/expenses`);
+    const expensesSnapshot = await get(expensesRef);
+    
+    if (expensesSnapshot.exists()) {
+      const expenses = expensesSnapshot.val();
+      
+      for (const expenseId in expenses) {
+        const expense = expenses[expenseId];
+        const updates = {};
+        
+        if (expense.paidBy === oldMemberName) {
+          updates.paidBy = newMemberName.trim();
+        }
+        
+        if (expense.splitWith && Array.isArray(expense.splitWith)) {
+          updates.splitWith = expense.splitWith.map(name => 
+            name === oldMemberName ? newMemberName.trim() : name
+          );
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await update(ref(database, `trips/${tripId}/expenses/${expenseId}`), updates);
+        }
+      }
+    }
+
+    return { success: true, message: '團員名稱已更新' };
+  } catch (error) {
+    console.error('❌ 更新團員名稱失敗:', error);
+    return { success: false, message: '更新團員名稱失敗' };
   }
 };
