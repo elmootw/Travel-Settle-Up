@@ -25,6 +25,12 @@ const AppContent = () => {
 };
 
 function App() {
+  // 設置基礎路徑以支持 GitHub Pages 子目錄
+  if (typeof window !== 'undefined') {
+    const basePath = window.location.pathname.includes('/Travel-Settle-Up') ? '/Travel-Settle-Up' : '';
+    window.__BASENAME__ = basePath;
+  }
+
   return (
     <AuthProvider>
       <AppContent />
