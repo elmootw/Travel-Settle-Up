@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
-import { AuthProvider, AuthContext } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { AuthContext } from './context/AuthContext';
 import { LoginForm } from './components/LoginForm';
 import { Dashboard } from './pages/Dashboard';
 
@@ -35,8 +36,17 @@ function App() {
     <AuthProvider>
       <AppContent />
       {/* Footer */}
-      <footer className="fixed bottom-0 right-0 p-2 text-xs text-gray-400">
-        Design by Elmo HSIAO
+      <footer className="bg-gray-900 text-gray-400 text-center py-6 mt-12 border-t border-gray-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <p className="text-sm">
+            <span className="text-blue-400 font-semibold">Travel Settle Up</span> · 
+            <span className="mx-2">旅遊分帳系統</span>
+          </p>
+          <p className="text-xs mt-2 opacity-75">
+            Designed & Developed by <span className="text-gray-300">Elmo HSIAO</span>
+          </p>
+          <p className="text-xs mt-1 opacity-60">© 2024 All rights reserved</p>
+        </div>
       </footer>
     </AuthProvider>
   );
