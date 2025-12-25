@@ -2,7 +2,7 @@
   "name": "travel-settle-up",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://elmohsiao.github.io/Travel-Settle-Up",
+  "homepage": "https://elmootw.github.io/Travel-Settle-Up",
   "dependencies": {
     "firebase": "^10.0.0",
     "react": "^18.2.0",
