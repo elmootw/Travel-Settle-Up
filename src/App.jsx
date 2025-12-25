@@ -4,7 +4,7 @@ import { LoginForm } from './components/LoginForm';
 import { Dashboard } from './pages/Dashboard';
 
 const AppContent = () => {
-  const { user, loading } = useContext(AuthContext);
+  const { currentUsername, loading } = useContext(AuthContext);
 
   if (loading) {
     return (
@@ -17,7 +17,7 @@ const AppContent = () => {
     );
   }
 
-  if (!user) {
+  if (!currentUsername) {
     return <LoginForm />;
   }
 
