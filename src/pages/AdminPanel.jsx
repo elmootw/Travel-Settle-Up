@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createTrip, getAllTrips, deleteTrip, addMemberToTrip, removeMemberFromTrip } from '../services/tripService';
 
-export const AdminPanel = ({ onBack }) => {
+export const AdminPanel = ({ onBack, onTripsUpdated }) => {
   const [trips, setTrips] = useState({});
   const [newTripName, setNewTripName] = useState('');
   const [selectedTripId, setSelectedTripId] = useState('');
@@ -71,6 +71,11 @@ export const AdminPanel = ({ onBack }) => {
       setGeneratedPassword(result.password);
       setNewMemberName('');
       await loadTrips();
+      
+      // 通知父組件重新載入旅遊列表
+      if (onTripsUpdated) {
+        onTripsUpdated();
+      }
       
       setTimeout(() => {
         setGeneratedPassword('');

@@ -190,7 +190,7 @@ export const Dashboard = () => {
               >
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-2xl font-bold text-gray-800">{tripData.name}</h3>
-                  <span className="text-3xl">🏖️</span>
+                  <span className="text-4xl">{tripData.emoji || '🏖️'}</span>
                 </div>
                 
                 <div className="space-y-2 text-gray-600">

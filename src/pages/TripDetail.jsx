@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { getExpenses, addExpense, updateExpense, deleteExpense, calculateDebts } from '../services/expenseService';
-import { updateTripName, updateMemberName, removeMemberFromTrip, getTrip } from '../services/tripService';
+import { updateTripName, updateMemberName, removeMemberFromTrip, getTrip, updateTripEmoji } from '../services/tripService';
 
 export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
   const { currentUsername, isAdmin } = useContext(AuthContext);
@@ -21,6 +21,8 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
   const [editingMember, setEditingMember] = useState(null);
   const [newMemberNameValue, setNewMemberNameValue] = useState('');
   const [localTrip, setLocalTrip] = useState(trip);
+  const [editingEmoji, setEditingEmoji] = useState(false);
+  const [newEmoji, setNewEmoji] = useState(trip.emoji || '🏖️');
 
   const loadExpenses = useCallback(async () => {
     const result = await getExpenses(tripId);
@@ -204,6 +206,25 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
     }
   };
 
+  const handleUpdateTripEmoji = async () => {
+    if (!newEmoji.trim()) {
+      setMessage('❌ 圖案不能為空');
+      return;
+    }
+
+    const result = await updateTripEmoji(tripId, newEmoji);
+    if (result.success) {
+      setMessage('✅ 旅遊圖案已更新');
+      setEditingEmoji(false);
+      setLocalTrip({ ...localTrip, emoji: newEmoji });
+      if (onTripsUpdated) {
+        onTripsUpdated();
+      }
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+  };
+
   const currentTrip = localTrip;
 
   const members = Object.keys(localTrip.members || {});
@@ -238,13 +259,51 @@ export const TripDetail = ({ tripId, trip, onBack, onTripsUpdated }) => {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-blue-600">🏖️ {currentTrip.name}</h1>
-              <button
-                onClick={() => setEditingTripName(true)}
-                className="text-gray-500 hover:text-gray-700 text-sm"
-              >
-                ✏️
-              </button>
+              {editingEmoji ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newEmoji}
+                    onChange={(e) => setNewEmoji(e.target.value)}
+                    maxLength="2"
+                    className="w-12 text-center text-2xl border-2 border-blue-500 rounded"
+                    placeholder="🏖️"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleUpdateTripEmoji}
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => setEditingEmoji(false)}
+                    className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span 
+                    className={`text-4xl ${isAdmin ? 'cursor-pointer hover:opacity-75' : ''}`}
+                    onClick={() => isAdmin && setEditingEmoji(true)}
+                  >
+                    {localTrip.emoji || '🏖️'}
+                  </span>
+                  <div>
+                    <h1 className="text-2xl font-bold text-blue-600">{currentTrip.name}</h1>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setEditingTripName(true)}
+                        className="text-gray-500 hover:text-gray-700 text-sm"
+                      >
+                        編輯旅遊名稱
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
           <button

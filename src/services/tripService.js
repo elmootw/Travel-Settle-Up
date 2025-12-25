@@ -218,3 +218,22 @@ export const updateMemberName = async (tripId, oldMemberName, newMemberName) => 
     return { success: false, message: '更新團員名稱失敗' };
   }
 };
+
+/**
+ * 更新旅遊 emoji
+ */
+export const updateTripEmoji = async (tripId, emoji) => {
+  try {
+    if (!emoji || emoji.trim() === '') {
+      return { success: false, message: 'Emoji 不能為空' };
+    }
+
+    const tripRef = ref(database, `trips/${tripId}`);
+    await update(tripRef, { emoji: emoji.trim() });
+
+    return { success: true, message: '旅遊圖案已更新' };
+  } catch (error) {
+    console.error('❌ 更新旅遊圖案失敗:', error);
+    return { success: false, message: '更新旅遊圖案失敗' };
+  }
+};
